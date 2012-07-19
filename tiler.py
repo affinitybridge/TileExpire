@@ -8,22 +8,36 @@ from ModestMaps.Geo import Location
 
 class Manager(object):
 
-    def __init__(self, config, layer='ALL', verbose=True):
+    def __init__(self, config, verbose=True):
         self.verbose = verbose
         self.config = config
+        self.layers = []
 
-        if layer in ('ALL', 'ALL LAYERS') and layer not in config.layers:
+    def addLayer(self, layer, reset=False):
+        if layer in ('ALL', 'ALL LAYERS') and layer not in self.config.layers:
             # clean every layer in the config
-            self.layers = config.layers.values()
+            self.layers = self.config.layers.values()
 
-        elif layer not in config.layers:
-            raise KnownUnknown('"%s" is not a layer I know about. Here are some that I do know about: %s.' % (layer, ', '.join(sorted(config.layers.keys()))))
+        elif layer not in self.config.layers:
+            # TODO: Raise missing layer exception.
+            raise KnownUnknown('"%s" is not a layer I know about. Here are some that I do know about: %s.' % (layer, ', '.join(sorted(self.config.layers.keys()))))
 
         else:
-            # clean just one layer in the config
-            self.layers = [config.layers[layer]]
+            if (reset):
+                # clean just one layer in the config
+                self.layers[self.config.layers[layer]]
+            else:
+                self.layers.append(self.config.layers[layer])
 
-    def tiles(self, zooms=[0, 1, 2, 3], bbox=[85, -180, -85, 180], extension='png', padding=0):
+        return self
+
+
+    def __call__(self,
+              zooms=[0, 1, 2, 3],
+              bbox=[85, -180, -85, 180],
+              extension='png',
+              padding=0):
+
         lat1, lon1, lat2, lon2 = bbox
         south, west = min(lat1, lat2), min(lon1, lon2)
         north, east = max(lat1, lat2), max(lon1, lon2)
@@ -37,19 +51,19 @@ class Manager(object):
         for layer in self.layers:
             ul = layer.projection.locationCoordinate(northwest)
             lr = layer.projection.locationCoordinate(southeast)
-    
+
             coordinates = generateCoordinates(ul, lr, zooms, padding)
-            
+
             for (offset, count, coord) in coordinates:
                 path = '%s/%d/%d/%d.%s' % (layer.name(), coord.zoom, coord.column, coord.row, extension)
-        
+
                 progress = {"tile": path,
                             "offset": offset + 1,
                             "total": count}
-        
+
                 if self.verbose:
                     logging.info('%(offset)d of %(total)d...' % progress)
-        
+
                 try:
                     mimetype, format = layer.getTypeByExtension(extension)
                 except:
@@ -60,17 +74,19 @@ class Manager(object):
                     #
                     pass
                 else:
-                    yield (layer, coord, format, progress)
+                    yield(layer, coord, format, progress)
 
-                # if progressfile:
-                #     fp = open(progressfile, 'w')
-                #     json_dump(progress, fp)
-                #     fp.close()
 
-    def clean(self, zooms=[0, 1, 2, 3], bbox=[85, -180, -85, 180], extension='png', padding=0):
+class Cache(object):
+
+    def __init__(self, verbose=True):
+        self.verbose = verbose
+
+
+    def clean(self, tiles):
         status = []
-        for (layer, coord, format, progress) in self.tiles(zooms, bbox, extension, padding):
-            self.config.cache.remove(layer, coord, format)
+        for (layer, coord, format, progress) in tiles:
+            layer.config.cache.remove(layer, coord, format)
 
             if self.verbose:
                 logging.info('%(tile)s' % progress)
@@ -79,11 +95,16 @@ class Manager(object):
 
         return status
 
-    def seed(self, zooms=[0, 1, 2, 3], bbox=[85, -180, -85, 180], extension='png', padding=0, ignore_cached=False, callback=None, enable_retries=True):
+
+    def seed(self, tiles,
+             ignore_cached=False,
+             callback=None,
+             enable_retries=True):
+
         status = []
         error_list = []
 
-        for (layer, coord, format, progress) in self.tiles(zooms, bbox, extension, padding):
+        for (layer, coord, format, progress) in tiles:
             #
             # Fetch a tile.
             #
@@ -96,7 +117,7 @@ class Manager(object):
                     logging.info('%(offset)d of %(total)d...' % progress)
 
                 try:
-                    mimetype, content = getTile(layer, coord, extension, ignore_cached)
+                    mimetype, content = getTile(layer, coord, format, ignore_cached)
 
                     if 'json' in mimetype and callback:
                         js_path = '%s/%d/%d/%d.js' % (layer.name(), coord.zoom, coord.column, coord.row)

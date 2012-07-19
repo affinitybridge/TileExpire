@@ -24,9 +24,9 @@ class Expire(object):
         padding=0
         """
 
-        manager = tiler.Manager(self.app.config, layer)
+        tiles = tiler.Manager(self.app.config).addLayer(layer)
         params = self.params(request.data)
-        results = manager.clean(**params)
+        results = tiler.Cache().clean(tiles(**params))
 
         return Response(json.dumps(results))
 
@@ -39,24 +39,33 @@ class Expire(object):
         padding=0
         """
 
-        manager = tiler.Manager(self.app.config, layer)
+        tiles = tiler.Manager(self.app.config).addLayer(layer)
         params = self.params(request.data)
-        results, errors = manager.seed(**params)
+        results, errors = tiler.Cache().seed(tiles(**params))
 
-        return Response(json.dumps(results))
+        return Response(json.dumps({'results': results, 'errors': errors}))
 
 
     def params(self, raw):
         data = json.loads(raw)
-
         params = {}
+
         if 'bbox' in data:
             params['bbox'] = data['bbox']
+
         if 'zooms' in data:
-            params['zooms'] = data['zooms']
+            params['zooms'] = []
+            for (i, zoom) in enumerate(data['zooms']):
+                if not zoom.isdigit():
+                    raise Exception('"%s" is not a valid numeric zoom level.' % zoom)
+                params['zooms'].append(int(zoom))
+
         if 'extension' in data:
             params['extension'] = data['extension']
+
         if 'padding' in data:
+            if (data['padding'] < 0):
+                raise Exception('A negative padding will not work.')
             params['padding'] = data['padding']
 
         return params
