@@ -1,5 +1,6 @@
 import logging
 
+from TileStache import getTile
 from TileStache.Core import KnownUnknown
 
 from ModestMaps.Core import Coordinate
@@ -22,7 +23,7 @@ class Manager(object):
             # clean just one layer in the config
             self.layers = [config.layers[layer]]
 
-    def clean(self, zooms=[0, 1, 2, 3], bbox=[85, -180, -85, 180], extension='png', padding=0):
+    def tiles(self, zooms=[0, 1, 2, 3], bbox=[85, -180, -85, 180], extension='png', padding=0):
         lat1, lon1, lat2, lon2 = bbox
         south, west = min(lat1, lat2), min(lon1, lon2)
         north, east = max(lat1, lat2), max(lon1, lon2)
@@ -33,7 +34,6 @@ class Manager(object):
         if padding < 0:
             raise KnownUnknown('A negative padding will not work.')
 
-        status = []
         for layer in self.layers:
             ul = layer.projection.locationCoordinate(northwest)
             lr = layer.projection.locationCoordinate(southeast)
@@ -60,20 +60,83 @@ class Manager(object):
                     #
                     pass
                 else:
-                    #yield (layer, coord, format, progress)
-                    self.config.cache.remove(layer, coord, format)
-        
-                if self.verbose:
-                    logging.info('%(tile)s' % progress)
-                        
+                    yield (layer, coord, format, progress)
+
                 # if progressfile:
                 #     fp = open(progressfile, 'w')
                 #     json_dump(progress, fp)
                 #     fp.close()
 
-            status.append(layer.name())
+    def clean(self, zooms=[0, 1, 2, 3], bbox=[85, -180, -85, 180], extension='png', padding=0):
+        status = []
+        for (layer, coord, format, progress) in self.tiles(zooms, bbox, extension, padding):
+            self.config.cache.remove(layer, coord, format)
+
+            if self.verbose:
+                logging.info('%(tile)s' % progress)
+
+            status.append(progress['tile'])
 
         return status
+
+    def seed(self, zooms=[0, 1, 2, 3], bbox=[85, -180, -85, 180], extension='png', padding=0, ignore_cached=False, callback=None, enable_retries=True):
+        status = []
+        error_list = []
+
+        for (layer, coord, format, progress) in self.tiles(zooms, bbox, extension, padding):
+            #
+            # Fetch a tile.
+            #
+
+            attempts = enable_retries and 3 or 1
+            rendered = False
+
+            while not rendered:
+                if self.verbose:
+                    logging.info('%(offset)d of %(total)d...' % progress)
+
+                try:
+                    mimetype, content = getTile(layer, coord, extension, ignore_cached)
+
+                    if 'json' in mimetype and callback:
+                        js_path = '%s/%d/%d/%d.js' % (layer.name(), coord.zoom, coord.column, coord.row)
+                        js_body = '%s(%s);' % (callback, content)
+                        js_size = len(js_body) / 1024
+                        
+                        layer.config.cache.save(js_body, layer, coord, 'JS')
+                        logging.info('%s (%dKB)' % (js_path, js_size))
+
+                    elif callback:
+                        print >> stderr, '(callback ignored)',
+
+                except:
+                    #
+                    # Something went wrong: try again? Log the error?
+                    #
+                    attempts -= 1
+
+                    if self.verbose:
+                        print >> stderr, 'Failed %s, will try %s more.' % (progress['tile'], ['no', 'once', 'twice'][attempts])
+
+                    if attempts == 0:
+                        msg = '%(zoom)d/%(column)d/%(row)d\n' % coord.__dict__
+                        logging.error(msg)
+                        error_list.append(msg)
+                        break
+
+                else:
+                    #
+                    # Successfully got the tile.
+                    #
+                    rendered = True
+                    progress['size'] = '%dKB' % (len(content) / 1024)
+
+                    if self.verbose:
+                        logging.info('%(tile)s (%(size)s)' % progress)
+
+            status.append(progress['tile'])
+
+        return (status, error_list)
 
 
 def generateCoordinates(ul, lr, zooms, padding):
