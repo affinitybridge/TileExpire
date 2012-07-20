@@ -6,7 +6,7 @@ from werkzeug.exceptions import HTTPException, NotFound, BadRequest
 
 from Tiler import Tiles, Cache
 
-class Expire(object):
+class WSGI(object):
 
     def __init__(self, app):
         self.app = app
