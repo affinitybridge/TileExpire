@@ -46,7 +46,6 @@ class Expire(object):
         params = self.params(request.data)
         tiles, errors = Cache().seed(tiles(**params))
 
-        import pdb; pdb.set_trace()
         results = {
             'tiles': len(tiles),
             'errors': len(errors)
