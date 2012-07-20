@@ -26,9 +26,12 @@ class Expire(object):
 
         tiles = Tiles(self.app.config).addLayer(layer)
         params = self.params(request.data)
-        results = Cache().clean(tiles(**params))
+        tiles = Cache().clean(tiles(**params))
 
-        return Response(json.dumps(results))
+        results = {
+            'tiles': len(tiles)
+        }
+        return Response("%(tiles)d tiles cleared from cache." % results)
 
 
     def seed(self, request, layer):
@@ -41,9 +44,14 @@ class Expire(object):
 
         tiles = Tiles(self.app.config).addLayer(layer)
         params = self.params(request.data)
-        results, errors = Cache().seed(tiles(**params))
+        tiles, errors = Cache().seed(tiles(**params))
 
-        return Response(json.dumps({'results': results, 'errors': errors}))
+        import pdb; pdb.set_trace()
+        results = {
+            'tiles': len(tiles),
+            'errors': len(errors)
+        }
+        return Response("%(tiles)d tiles seeded, %(errors)d errors occured" % results)
 
 
     def params(self, raw):
