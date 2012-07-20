@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from sys import stderr
 from optparse import OptionParser
 from httplib import HTTPConnection

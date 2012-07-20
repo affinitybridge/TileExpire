@@ -1,1 +1,12 @@
 *.pyc
+doc
+dist
+build
+TileExpire-*.*
+TileExpire-*.*.tar.gz
+*.dbf
+*.prj
+*.sbn
+*.sbx
+*.shp
+*.shx

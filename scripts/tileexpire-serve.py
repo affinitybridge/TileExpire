@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 if __name__ == '__main__':
     from optparse import OptionParser, OptionValueError
     import os, sys
@@ -18,7 +20,7 @@ if __name__ == '__main__':
             sys.path.insert(0, p)
 
     from werkzeug.serving import run_simple
-    from expire import Expire
+    from TileExpire import Expire
     import TileStache
 
     if not os.path.exists(options.file):

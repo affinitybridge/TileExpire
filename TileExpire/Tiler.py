@@ -6,7 +6,7 @@ from TileStache.Core import KnownUnknown
 from ModestMaps.Core import Coordinate
 from ModestMaps.Geo import Location
 
-class Manager(object):
+class Tiles(object):
 
     def __init__(self, config, verbose=True):
         self.verbose = verbose

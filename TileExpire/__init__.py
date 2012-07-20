@@ -4,7 +4,7 @@ from werkzeug.wrappers import Request, Response
 from werkzeug.routing import Map, Rule, RequestRedirect
 from werkzeug.exceptions import HTTPException, NotFound, BadRequest
 
-import tiler
+from Tiler import Tiles, Cache
 
 class Expire(object):
 
@@ -24,9 +24,9 @@ class Expire(object):
         padding=0
         """
 
-        tiles = tiler.Manager(self.app.config).addLayer(layer)
+        tiles = Tiles(self.app.config).addLayer(layer)
         params = self.params(request.data)
-        results = tiler.Cache().clean(tiles(**params))
+        results = Cache().clean(tiles(**params))
 
         return Response(json.dumps(results))
 
@@ -39,9 +39,9 @@ class Expire(object):
         padding=0
         """
 
-        tiles = tiler.Manager(self.app.config).addLayer(layer)
+        tiles = Tiles(self.app.config).addLayer(layer)
         params = self.params(request.data)
-        results, errors = tiler.Cache().seed(tiles(**params))
+        results, errors = Cache().seed(tiles(**params))
 
         return Response(json.dumps({'results': results, 'errors': errors}))
 
