@@ -16,7 +16,8 @@ parser.add_option('-d', '--domain', dest='domain',
                   help='The domain name of the server you wish to connect to.')
 
 parser.add_option('-P', '--port', dest='port',
-                  help='The port to connect to.')
+                  help='The port to connect to.',
+                  type='int')
 
 parser.add_option('-l', '--layer', dest='layer',
                   help='Layer name from configuration, typically required.')
