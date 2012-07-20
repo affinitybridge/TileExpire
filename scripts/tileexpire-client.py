@@ -9,8 +9,14 @@ parser = OptionParser(usage="""%prog [options] method [zooms]
 
 """)
 
-defaults = dict(padding=1, bbox=(85, -180, -85, 180), extension='png')
+defaults = dict(port=80, padding=1, bbox=(85, -180, -85, 180), extension='png')
 parser.set_defaults(**defaults)
+
+parser.add_option('-d', '--domain', dest='domain',
+                  help='The domain name of the server you wish to connect to.')
+
+parser.add_option('-P', '--port', dest='port',
+                  help='The port to connect to.')
 
 parser.add_option('-l', '--layer', dest='layer',
                   help='Layer name from configuration, typically required.')
@@ -39,6 +45,9 @@ if __name__ == '__main__':
     if options.layer is None:
         raise Exception('Missing required layer (--layer) parameter.')
 
+    if options.domain is None:
+        raise Exception('You must provide a domain name (--domain).')
+
     elif options.padding < 0:
         raise Exception('A negative padding will not work.')
 
@@ -49,7 +58,7 @@ if __name__ == '__main__':
         'padding': options.padding
     }
 
-    conn = HTTPConnection('localhost', 8080)
+    conn = HTTPConnection(options.domain, options.port)
     conn.connect()
 
     conn.request('POST', '/' + method + '/' + options.layer, json.dumps(payload))
