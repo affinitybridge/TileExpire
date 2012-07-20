@@ -1,0 +1,75 @@
+<html>
+  <head>
+    <title>Leaflet</title>
+    <link rel="stylesheet" href="http://dl.dropbox.com/u/48433/leaflet/dist/leaflet.css" />
+    <script src="http://dl.dropbox.com/u/48433/leaflet/dist/leaflet-src.js"></script>
+  </head>
+  <body>
+    <div>
+      <label>BBox</label><input id='bbox' style="width: 100%;" disabled="true"></input>
+      <label>Center</label><input id='center' style="width: 100%;" disabled="true"></input>
+    </div>
+    <div style="width:100%; height:90%" id="map"></div>
+    <script type='text/javascript'>
+      var osm = new L.TileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+          bing = new L.TileLayer('http://{s}.tiles.cantrusthosting.com/bing--hybrid/{z}/{x}/{y}.png'),
+          wbc_rr = new L.TileLayer('http://{s}.tilestache.local/wbc--resource-roads/{z}/{x}/{y}.png'),
+          base_layers = {
+            'Bing: Hybrid': bing,
+            'OSM': osm
+          },
+          overlays = {
+            'RR': wbc_rr
+          },
+          layers = new L.Control.Layers(base_layers, overlays),
+          map = new L.Map('map', {
+            center: [0, 0],
+            zoom: 1,
+            layers: [bing]
+          });
+
+      var ul = L.marker([85, -180], { draggable: true }),
+          lr = L.marker([-85, 180], { draggable: true }),
+          box = L.polygon(),
+          events = {
+            'drag': drag,
+            'dragend': drag_end
+          };
+
+      ul.on(events);
+      lr.on(events);
+
+      drag();
+      drag_end();
+
+      map.addLayer(ul);
+      map.addLayer(lr);
+      map.addLayer(box);
+
+      map.addControl(layers);
+
+      function drag() {
+        var bounds = L.latLngBounds(ul.getLatLng(), lr.getLatLng());
+        box.setLatLngs([
+          bounds.getNorthWest(),
+          bounds.getNorthEast(),
+          bounds.getSouthEast(),
+          bounds.getSouthWest()
+        ]);
+      }
+
+      function drag_end() {
+        var bounds = L.latLngBounds(ul.getLatLng(), lr.getLatLng()),
+            // L.LatLngBounds.getBBoxString() formats in wrong order.
+            bbox = ul.getLatLng().lat + ' ' + ul.getLatLng().lng + ' ' + lr.getLatLng().lat + ' ' + lr.getLatLng().lng;
+
+        document.getElementById('bbox').value = bbox;
+        document.getElementById('center').value = bounds.getCenter();
+      }
+
+    </script>
+
+  </body>
+</html>
+
+
