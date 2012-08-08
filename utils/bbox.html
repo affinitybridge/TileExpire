@@ -1,8 +1,12 @@
 <html>
   <head>
     <title>Leaflet</title>
-    <link rel="stylesheet" href="http://dl.dropbox.com/u/48433/leaflet/dist/leaflet.css" />
-    <script src="http://dl.dropbox.com/u/48433/leaflet/dist/leaflet-src.js"></script>
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.4.4/leaflet.css" />
+    <!--[if lte IE 8]>
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.4.4/leaflet.ie.css" />
+    <![endif]-->
+
+    <script src="http://cdn.leafletjs.com/leaflet-0.4.4/leaflet.js"></script>
   </head>
   <body>
     <div>
@@ -25,7 +29,7 @@
 
       var ul = L.marker([85, -180], { draggable: true }),
           lr = L.marker([-85, 180], { draggable: true }),
-          box = L.polygon(),
+          box = L.polygon([ul.getLatLng(), lr.getLatLng()]),
           events = {
             'drag': drag,
             'dragend': drag_end
